@@ -2,13 +2,42 @@ const express = require("express");
 const app = express();
 app.use(express.json());
 const db = require("./connection");
+const basicAuth = require("basic-auth");
 const response = require("./response");
+
+// Middleware to require basic auth for all requests
+const auth = (req, res, next) => {
+  const user = basicAuth(req);
+  const sql1 = `select * from merchant where name =? and password = ?`;
+  db.query(sql1, [user.name, user.pass], (err, result) => {
+    if (err) {
+      response(400, "Invalid input", "Invalid input", res);
+      return;
+    }
+    if (!user.name || !user.pass) {
+      response(
+        400,
+        "No input username or password",
+        "Authentication is required",
+        res
+      );
+      return;
+    }
+    const hasil = result[0];
+    if (!hasil) {
+      response(401, "No Data Found", "Unauthorized", res);
+      return;
+    }
+    next();
+  });
+};
 
 //CREATE MERCHANT ACCOUNT
 app.post("/merchant", (req, res) => {
   const { password, name, address, join_date, phone_number } = req.body;
   const sql = `Insert into merchant (password,name, address, join_date, phone_number) 
 values (?,?,?,?,?)`;
+  const theColumns = [password, name, address, join_date, phone_number];
   if (
     Object.entries(req.body).length == 5 &&
     "password" in req.body &&
@@ -22,22 +51,18 @@ values (?,?,?,?,?)`;
     "phone_number" in req.body &&
     typeof req.body.phone_number == "string"
   ) {
-    db.query(
-      sql,
-      [password, name, address, join_date, phone_number],
-      (error, result) => {
-        if (error) {
-          response(400, "invalid input", "The passsword has been used", res);
-          return;
-        } else if (result.affectedRows) {
-          const data = {
-            isSuccess: result.affectedRows,
-            id: result.insertId,
-          };
-          response(201, data, "Your account is successfully created", res);
-        }
+    db.query(sql, theColumns, (error, result) => {
+      if (error) {
+        response(400, "invalid input", "The passsword has been used", res);
+        return;
+      } else if (result.affectedRows) {
+        const data = {
+          isSuccess: result.affectedRows,
+          id: result.insertId,
+        };
+        response(201, data, "Your account is successfully created", res);
       }
-    );
+    });
   } else {
     response(400, "Invalid input", "Your input data is invalid", res);
   }
@@ -47,26 +72,53 @@ values (?,?,?,?,?)`;
 app.delete("/merchant/:id", (req, res) => {
   const user = basicAuth(req);
   const { id } = req.params;
-  const sql = `delete from merchant where id = ?`;
-  db.query(sql, [id], (err, result) => {
-    if (err) {
-      response(400, "Invalid input", "Your input data is invalid", res);
-    }
+  const sql1 = `select * from merchant where name =? `;
+  const sql2 = `delete from merchant where id = ${id}`;
 
-    if (result) {
-      const data = {
-        isDeleted: result.affectedRows,
-      };
-      response(200, data, "Your account has been deleted", res);
-    } else {
-      response(404, "error", "The account is not found", res);
+  db.query(sql1, [user.name, user.pass], (err, result) => {
+    if (err) {
+      response(400, "Invalid input", "Invalid input", res);
+      return;
     }
+    if (!user.name || !user.pass) {
+      response(
+        400,
+        "No input username or password",
+        "Authentication is required",
+        res
+      );
+      return;
+    }
+    const hasil = result[0];
+    if (!hasil) {
+      response(401, "No Data Found", "Unauthorized", res);
+      return;
+    }
+    if (`${hasil.id}` != id) {
+      //Please discuss this one to the mentor (asking how manage the same result/purpose of this if we want to make the auth basic by just putting it in parameters in SQL Query)
+      res.status(400).send("Invalid ID input");
+      return;
+    }
+    db.query(sql2, [id], (err, result) => {
+      if (err) {
+        response(400, "Invalid input", "Your input data is invalid", res);
+      }
+
+      if (result) {
+        const data = {
+          isDeleted: result.affectedRows,
+        };
+        response(200, result, "your account has been deleted", res);
+      } else {
+        response(404, "error", "The account is not found", res);
+      }
+    });
   });
 });
 
 // Product Information
 //SHOW ALL PRODUCT
-app.get("/product", (req, res) => {
+app.get("/product", auth, (req, res) => {
   const { merchant_id } = req.body;
   const sql = `select * from product where merchant_id = ?`;
   if (
@@ -94,7 +146,7 @@ app.get("/product", (req, res) => {
 });
 
 //SHOW PRODUCT BY ID
-app.get("/product/:id", (req, res) => {
+app.get("/product/:id", auth, (req, res) => {
   const { id } = req.params;
   const sql = `select * from product where id = ?`;
 
@@ -111,7 +163,7 @@ app.get("/product/:id", (req, res) => {
 });
 
 //ADD PRODUCT
-app.post("/product", (req, res) => {
+app.post("/product", auth, (req, res) => {
   const { merchant_id, name, quantity, price } = req.body;
   const sql = `Insert into product (merchant_id, name, quantity, price)
 values (?,?,?,?)`;
@@ -158,7 +210,7 @@ values (?,?,?,?)`;
   }
 });
 //UPDATE product
-app.put("/product/:id", (req, res) => {
+app.put("/product/:id", auth, (req, res) => {
   const { id } = req.params;
   const { merchant_id, name, quantity, price } = req.body;
   const sql = `UPDATE product SET merchant_id = ?, name = ? quantity = ?, price = ? where id = ?`;
@@ -204,7 +256,7 @@ app.put("/product/:id", (req, res) => {
 });
 
 //HAPUS PRODUCT LIST
-app.delete("/product/:id", (req, res) => {
+app.delete("/product/:id", auth, (req, res) => {
   const { id } = req.params;
   const sql = `delete from product where id = ?`;
   db.query(sql, [id], (err, result) => {
