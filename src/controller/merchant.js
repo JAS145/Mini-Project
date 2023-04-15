@@ -2,7 +2,7 @@ const response = require("../utils/response");
 const db = require("../confiq/connection");
 const bcrypt = require("bcrypt");
 
-exports.createMerchantAccount = async (req, res) => {
+const createMerchantAccount = async (req, res) => {
   const hashedPassword = await bcrypt.hash(req.body.password, 10);
   const { name, address, join_date, phone_number } = req.body;
   const sql = `Insert into merchant (password,name, address, join_date, phone_number) 
@@ -28,7 +28,7 @@ exports.createMerchantAccount = async (req, res) => {
 };
 
 //DELETE MERCHANT ACCOUNT
-exports.deleteMerchantAccount = (req, res) => {
+const deleteMerchantAccount = (req, res) => {
   const { id } = req.params;
   const sql2 = `delete from merchant where id = ?`;
   db.query(sql2, [id], (error, result) => {
@@ -47,4 +47,9 @@ exports.deleteMerchantAccount = (req, res) => {
       response(404, "error", "The account is not found", res);
     }
   });
+};
+
+module.exports = {
+  createMerchantAccount,
+  deleteMerchantAccount,
 };

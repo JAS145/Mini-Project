@@ -1,7 +1,7 @@
 const response = require("../utils/response");
 const db = require("../confiq/connection");
 
-exports.viewAllProduct = (req, res) => {
+const viewAllProduct = (req, res) => {
   const { merchant_id } = req.body;
   const sql = `select * from product where merchant_id = ?`;
   db.query(sql, [merchant_id], (error, result) => {
@@ -18,7 +18,7 @@ exports.viewAllProduct = (req, res) => {
 };
 
 //SHOW PRODUCT BY ID
-exports.viewSpecificProduct = (req, res) => {
+const viewSpecificProduct = (req, res) => {
   const { id } = req.params;
   const sql = `select * from product where id = ?`;
 
@@ -37,7 +37,7 @@ exports.viewSpecificProduct = (req, res) => {
 };
 
 //ADD PRODUCT
-exports.addProduct = (req, res) => {
+const addProduct = (req, res) => {
   const { merchant_id, name, quantity, price } = req.body;
   const sql = `Insert into product (merchant_id, name, quantity, price)
   values (?,?,?,?)`;
@@ -62,7 +62,7 @@ exports.addProduct = (req, res) => {
   });
 };
 //UPDATE product
-exports.updateProduct = (req, res) => {
+const updateProduct = (req, res) => {
   const { id } = req.params;
   const { merchant_id, name, quantity, price } = req.body;
   const sql = `UPDATE product SET merchant_id = ?, name = ?, quantity = ?, price = ? where id = ?`;
@@ -89,7 +89,7 @@ exports.updateProduct = (req, res) => {
 };
 
 //HAPUS PRODUCT LIST
-exports.deleteProduct = (req, res) => {
+const deleteProduct = (req, res) => {
   const { id } = req.params;
   const sql = `delete from product where id = ?`;
   db.query(sql, [id], (error, result) => {
@@ -107,4 +107,12 @@ exports.deleteProduct = (req, res) => {
       response(404, "error", `Your product with ID = ${id} is not found`, res);
     }
   });
+};
+
+module.exports = {
+  viewAllProduct,
+  viewSpecificProduct,
+  addProduct,
+  updateProduct,
+  deleteProduct,
 };

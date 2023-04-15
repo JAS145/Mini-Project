@@ -1,5 +1,4 @@
 const postValidation = (schema) => async (req, res, next) => {
-  // const body = req.body;
   try {
     await schema.validate(req.body, { stripUnknown: false, strict: true });
 
@@ -13,10 +12,7 @@ const postValidation = (schema) => async (req, res, next) => {
 
 const deleteValidation = (schema) => async (req, res, next) => {
   try {
-    await schema.validate(req.params.id, {
-      // abortEarly: false,
-      // stripUnknown: true,
-    });
+    await schema.validate(req.params.id, {});
     return next();
   } catch (error) {
     res
