@@ -36,7 +36,6 @@ const deleteMerchantAccount = (req, res) => {
       response(400, error.name, error.message, res);
       return;
     }
-
     if (result.affectedRows != 0) {
       const data = {
         isDeleted: result.affectedRows,
